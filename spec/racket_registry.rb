@@ -10,7 +10,7 @@ if ENV['CI'] == 'true'
   SimpleCov.formatter = SimpleCov::Formatter::Codecov
 end
 
-require_relative '../lib/racket_registry.rb'
+require_relative '../lib/racket/registry.rb'
 
 describe 'Racket::Registry' do
   registry = Racket::Registry.new
