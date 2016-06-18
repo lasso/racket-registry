@@ -1,0 +1,11 @@
+language: ruby
+rvm:
+  - 1.9.3
+  - 2.0.0
+  - 2.1.9
+  - 2.2.5
+  - jruby-19mode
+  - jruby-head
+  - rbx-2
+env:
+- JRUBY_OPTS="-Xcli.debug=true --debug"
