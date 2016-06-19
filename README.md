@@ -26,8 +26,8 @@ obj2 = registry.foo
 registry.singleton(:bar, lambda { Object.new })
 
 # obj1 and obj2 will be the same object
-obj1 = registry.foo
-obj2 = registry.foo
+obj1 = registry.bar
+obj2 = registry.bar
 ```
 
 ## Handling dependendencies within the registry
