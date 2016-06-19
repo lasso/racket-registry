@@ -83,5 +83,5 @@ registry.register(:foo, lambda { Object.new })
 registry.register(:foo) { Object.new }
 ```
 
-### Limitations
+## Limitations
 When registering a proc, you must use a string/symbol as key. Since the registry is also defining a new public method, the key must not collide with any public method in Object or Racket::Registry.
