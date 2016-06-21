@@ -65,7 +65,21 @@ describe 'Racket::Registry' do
     obj1.object_id.should.equal(obj2.object_id)
   end
 
-  it 'should block invalid entries' do
-    -> { registry.register('invalid') }.should.raise(RuntimeError)
+  it 'should block invalid keys' do
+    -> { registry.register('inspect') }
+      .should.raise(RuntimeError)
+      .message.should.equal('Invalid key "inspect"')
+  end
+
+  it 'should block already registered keys' do
+    -> { registry.register('one', -> { Object.new }) }
+      .should.raise(RuntimeError)
+      .message.should.equal('Key "one" already registered')
+  end
+
+  it 'should block invalid block/procs' do
+    -> { registry.register('invalid') }
+      .should.raise(RuntimeError)
+      .message.should.equal('No proc/block given')
   end
 end

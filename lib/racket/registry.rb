@@ -34,7 +34,8 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register(key, proc = nil, &block)
-      key, proc, proc_args, = usable?(key, proc, block)
+      key, proc, proc_args =
+        ClassMethods.validate_usable([key, self, proc, block])
       singleton_class.instance_eval do
         define_method(key) { proc.call(*proc_args) }
       end && nil
@@ -50,42 +51,47 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register_singleton(key, proc = nil, &block)
-      key, proc, proc_args, resolved = usable?(key, proc, block)
+      key, proc, proc_args =
+        ClassMethods.validate_usable([key, self, proc, block])
       singleton_class.instance_eval do
         define_method(key) do
-          return resolved[key] if resolved.key?(key)
-          resolved[key] = proc.call(*proc_args)
+          return @resolved[key] if @resolved.key?(key)
+          @resolved[key] = proc.call(*proc_args)
         end
       end && nil
     end
 
     alias singleton register_singleton
 
-    private
+    # Racket Registry class methods
+    module ClassMethods
+      # Validates that the parameters sent to the registry is usable.
+      #
+      # @param [Array] args
+      # @return [Array]
+      def self.validate_usable(args)
+        key = validate_key(args[0], args[1])
+        proc = validate_proc(args[2], args[3])
+        [key, proc, proc.arity.zero? ? [] : [obj]]
+      end
 
-    INVALID_KEYS =
-      Object.public_methods.concat([:register, :register_singleton, :singleton])
-    VALID_KEYS = /[\d\w\-\_]+/
+      def self.validate_key(key, obj)
+        sym = key.to_sym
+        insp = key.inspect
+        raise "Invalid key #{insp}" if
+          Racket::Registry.public_methods.include?(sym) ||
+          /^[a-z\_]{1}[\d\w\_]*$/ !~ sym
+        raise "Key #{insp} already registered" if obj.respond_to?(key)
+        sym
+      end
 
-    def key?(key)
-      key = key.to_sym
-      klass = self.class
-      raise 'Invalid key' if klass::INVALID_KEYS.include?(key) ||
-                             !klass::VALID_KEYS =~ key.to_s
-      raise 'Key already registered' if respond_to?(key)
-      key
-    end
+      def self.validate_proc(proc, block)
+        return proc if proc.respond_to?(:call)
+        return block if block.respond_to?(:call)
+        raise 'No proc/block given'
+      end
 
-    def proc?(proc, block)
-      return proc if proc.respond_to?(:call)
-      return block if block.respond_to?(:call)
-      raise 'No block given'
-    end
-
-    def usable?(key, proc, block)
-      key = key?(key)
-      proc = proc?(proc, block)
-      [key, proc, proc.arity.zero? ? [] : [self], @resolved]
+      private_class_method :validate_key, :validate_proc
     end
   end
 end
