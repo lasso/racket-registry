@@ -41,7 +41,7 @@ end
 
 class NotSoSimple
   def initialize(text, simple_first, simple_second)
-    @text = test
+    @text = text
     @simple_first = simple_first
     @simple_second = simple_second
   end

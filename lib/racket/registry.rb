@@ -34,8 +34,8 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register(key, proc = nil, &block)
-      key, proc, proc_args =
-        ClassMethods.validate_usable([key, self, proc, block])
+      key, proc, proc_args, =
+        ClassMethods.validate_usable([key, self, proc, block, @resolved])
       singleton_class.instance_eval do
         define_method(key) { proc.call(*proc_args) }
       end && nil
@@ -51,12 +51,12 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register_singleton(key, proc = nil, &block)
-      key, proc, proc_args =
-        ClassMethods.validate_usable([key, self, proc, block])
+      key, proc, proc_args, resolved =
+        ClassMethods.validate_usable([key, self, proc, block, @resolved])
       singleton_class.instance_eval do
         define_method(key) do
-          return @resolved[key] if @resolved.key?(key)
-          @resolved[key] = proc.call(*proc_args)
+          return resolved[key] if resolved.key?(key)
+          resolved[key] = proc.call(*proc_args)
         end
       end && nil
     end
@@ -70,9 +70,10 @@ module Racket
       # @param [Array] args
       # @return [Array]
       def self.validate_usable(args)
-        key = validate_key(args[0], args[1])
-        proc = validate_proc(args[2], args[3])
-        [key, proc, proc.arity.zero? ? [] : [obj]]
+        key, obj, proc, block, resolved = args
+        key = validate_key(key, obj)
+        proc = validate_proc(proc, block)
+        [key, proc, proc.arity.zero? ? [] : [obj], resolved]
       end
 
       def self.validate_key(key, obj)

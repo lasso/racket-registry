@@ -30,7 +30,7 @@ end
 
 require_relative '../lib/racket/registry.rb'
 
-describe 'Racket::Registry' do
+describe 'Racket::Registry registration' do
   registry = Racket::Registry.new
 
   it 'should be able to register non-singleton entries using a proc' do
@@ -81,5 +81,45 @@ describe 'Racket::Registry' do
     -> { registry.register('invalid') }
       .should.raise(RuntimeError)
       .message.should.equal('No proc/block given')
+  end
+end
+
+describe 'Racket::Registry dependency handling' do
+  class Simple
+    attr_reader :text
+
+    def initialize(text)
+      @text = text
+    end
+  end
+
+  class NotSoSimple
+    attr_reader :text, :simple_first, :simple_second
+
+    def initialize(text, simple_first, simple_second)
+      @text = text
+      @simple_first = simple_first
+      @simple_second = simple_second
+    end
+  end
+
+  it 'should be able to resolve dependencies regardless of registration order' do
+    registry = Racket::Registry.new
+
+    foo = Simple.new('foo')
+    bar = Simple.new('bar')
+
+    registry.singleton(
+      :baz,
+      lambda { |r| NotSoSimple.new('baz', r.foo, r.bar) }
+    )
+    registry.singleton(:bar, lambda { |r| bar })
+    registry.singleton(:foo, lambda { |r| foo })
+
+    baz = registry.baz
+    baz.simple_first.object_id.should.equal(foo.object_id)
+    baz.simple_second.object_id.should.equal(bar.object_id)
+    registry.foo.object_id.should.equal(foo.object_id)
+    registry.bar.object_id.should.equal(bar.object_id)
   end
 end
