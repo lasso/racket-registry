@@ -20,8 +20,17 @@
 module Racket
   # Racket Registry namespace
   class Registry
-    def initialize
-      @resolved = {}
+    # Removes all registered callback from the registry.
+    def clear
+      self.class.instance_variable_get(:@mod).clear
+    end
+
+    # Removes the callback specified by +key+ from the registry.
+    #
+    # @param [String|Symbol] key
+    # @return [nil]
+    def forget(key)
+      self.class.instance_variable_get(:@mod).forget(obj: self, key: key)
     end
 
     # Registers a new proc in the registry. This will add a new method
@@ -34,11 +43,9 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register(key, proc = nil, &block)
-      key, proc, proc_args, =
-        ClassMethods.validate_usable([key, self, proc, block, @resolved])
-      singleton_class.instance_eval do
-        define_method(key) { proc.call(*proc_args) }
-      end && nil
+      self.class.instance_variable_get(:@mod).register(
+        obj: self, key: key, proc: proc, block: block
+      )
     end
 
     # Registers a new proc in the registry. This will add a new method
@@ -51,38 +58,50 @@ module Racket
     # @param [Proc|nil] proc
     # @return [nil]
     def register_singleton(key, proc = nil, &block)
-      key, proc, proc_args, resolved =
-        ClassMethods.validate_usable([key, self, proc, block, @resolved])
-      singleton_class.instance_eval do
-        define_method(key) do
-          return resolved[key] if resolved.key?(key)
-          resolved[key] = proc.call(*proc_args)
-        end
-      end && nil
+      self.class.instance_variable_get(:@mod).register_singleton(
+        obj: self, key: key, proc: proc, block: block
+      )
     end
 
     alias singleton register_singleton
 
-    # Racket Registry class methods
-    module ClassMethods
-      # Validates that the parameters sent to the registry is usable.
-      #
-      # @param [Array] args
-      # @return [Array]
-      def self.validate_usable(args)
-        key, obj, proc, block, resolved = args
-        key = validate_key(key, obj)
-        proc = validate_proc(proc, block)
-        [key, proc, proc.arity.zero? ? [] : [obj], resolved]
+    @mod = Module.new do
+      def self.forget(options)
+        key = options[:key].to_sym
+        options[:obj].singleton_class.instance_eval do
+          @resolved.delete(key) if defined?(@resolved)
+          remove_method key
+        end
+      end
+
+      def self.register(options)
+        key, proc, proc_args, obj = validate_usable(options)
+        obj.define_singleton_method(key) do
+          proc.call(*proc_args)
+        end && nil
+      end
+
+      def self.register_singleton(options)
+        key, proc, proc_args, obj = validate_usable(options)
+        resolved = resolved(options[:obj])
+        obj.define_singleton_method(key) do
+          return resolved[key] if resolved.key?(key)
+          resolved[key] = proc.call(*proc_args)
+        end && nil
+      end
+
+      def self.resolved(obj)
+        obj.singleton_class.instance_eval { @resolved ||= {} }
       end
 
       def self.validate_key(key, obj)
         sym = key.to_sym
         insp = key.inspect
-        raise "Invalid key #{insp}" if
+        raise InvalidKeyError, "Invalid key #{insp}" if
           Racket::Registry.public_methods.include?(sym) ||
           /^[a-z\_]{1}[\d\w\_]*$/ !~ sym
-        raise "Key #{insp} already registered" if obj.respond_to?(key)
+        raise KeyAlreadyRegisteredError, "Key #{insp} already registered" if
+          obj.respond_to?(key)
         sym
       end
 
@@ -92,7 +111,27 @@ module Racket
         raise 'No proc/block given'
       end
 
-      private_class_method :validate_key, :validate_proc
+      def self.validate_usable(options)
+        obj = options[:obj]
+        key = validate_key(options[:key], obj)
+        proc = validate_proc(options[:proc], options[:block])
+        [key, proc, proc.arity.zero? ? [] : [obj], obj]
+      end
+
+      private_class_method :resolved, :validate_key, :validate_proc,
+                           :validate_usable
+    end
+
+    # Exception class used when an invalid key is used.
+    class InvalidKeyError < ArgumentError
+    end
+
+    # Exception class used when an invalid proc/block is used.
+    class InvalidProcError < ArgumentError
+    end
+
+    # Exception class used when a key is already registered.
+    class KeyAlreadyRegisteredError < ArgumentError
     end
   end
 end

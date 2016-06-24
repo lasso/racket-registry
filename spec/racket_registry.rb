@@ -67,13 +67,13 @@ describe 'Racket::Registry registration' do
 
   it 'should block invalid keys' do
     -> { registry.register('inspect') }
-      .should.raise(RuntimeError)
+      .should.raise(Racket::Registry::InvalidKeyError)
       .message.should.equal('Invalid key "inspect"')
   end
 
   it 'should block already registered keys' do
     -> { registry.register('one', -> { Object.new }) }
-      .should.raise(RuntimeError)
+      .should.raise(Racket::Registry::KeyAlreadyRegisteredError)
       .message.should.equal('Key "one" already registered')
   end
 
