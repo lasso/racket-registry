@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    racket-registry (0.3)
+    racket-registry (0.3.0)
 
 GEM
   remote: https://rubygems.org/

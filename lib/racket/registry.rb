@@ -20,118 +20,167 @@
 module Racket
   # Racket Registry namespace
   class Registry
-    # Removes all registered callback from the registry.
-    def clear
-      self.class.instance_variable_get(:@mod).clear
-    end
-
     # Removes the callback specified by +key+ from the registry.
     #
     # @param [String|Symbol] key
     # @return [nil]
     def forget(key)
-      self.class.instance_variable_get(:@mod).forget(obj: self, key: key)
+      self.class.forget(obj: self, key: key)
     end
 
-    # Registers a new proc in the registry. This will add a new method
+    # Removes all callbacks from the registry.
+    def forget_all
+      self.class.forget_all(obj: self)
+    end
+
+    # Registers a new callback in the registry. This will add a new method
     # matching +key+ to the registry that can be used both outside the
-    # registry and when registering other procs dependant of the
-    # current entry. Results from the proc will not be cached, meaning
-    # that the proc may return a different object every time.
+    # registry and when registering other callbacks dependant of the
+    # current entry. Results from the callback will not be cached, meaning
+    # that the callback may return a different object every time.
     #
     # @param [String|Symbol] key
     # @param [Proc|nil] proc
     # @return [nil]
     def register(key, proc = nil, &block)
-      self.class.instance_variable_get(:@mod).register(
+      self.class.register(
         obj: self, key: key, proc: proc, block: block
       )
     end
 
-    # Registers a new proc in the registry. This will add a new method
+    # Registers a new callback in the registry. This will add a new method
     # matching +key+ to the registry that can be used both outside the
-    # registry and when registering other procs dependant of the
-    # current entry. Results from the proc will be cached, meaning
-    # that the proc will return the same object every time.
+    # registry and when registering other callbacks dependant of the
+    # current entry. Results from the callnack will be cached, meaning
+    # that the callback will return the same object every time.
     #
     # @param [String|Symbol] key
     # @param [Proc|nil] proc
     # @return [nil]
     def register_singleton(key, proc = nil, &block)
-      self.class.instance_variable_get(:@mod).register_singleton(
+      self.class.register_singleton(
         obj: self, key: key, proc: proc, block: block
       )
     end
 
     alias singleton register_singleton
 
-    @mod = Module.new do
-      def self.forget(options)
-        key = options[:key].to_sym
-        options[:obj].singleton_class.instance_eval do
-          @resolved.delete(key) if defined?(@resolved)
-          remove_method key
-        end
-      end
-
-      def self.register(options)
-        key, proc, proc_args, obj = validate_usable(options)
-        obj.define_singleton_method(key) do
-          proc.call(*proc_args)
-        end && nil
-      end
-
-      def self.register_singleton(options)
-        key, proc, proc_args, obj = validate_usable(options)
-        resolved = resolved(options[:obj])
-        obj.define_singleton_method(key) do
-          return resolved[key] if resolved.key?(key)
-          resolved[key] = proc.call(*proc_args)
-        end && nil
-      end
-
-      def self.resolved(obj)
-        obj.singleton_class.instance_eval { @resolved ||= {} }
-      end
-
-      def self.validate_key(key, obj)
-        sym = key.to_sym
-        insp = key.inspect
-        raise InvalidKeyError, "Invalid key #{insp}" if
-          Racket::Registry.public_methods.include?(sym) ||
-          /^[a-z\_]{1}[\d\w\_]*$/ !~ sym
-        raise KeyAlreadyRegisteredError, "Key #{insp} already registered" if
-          obj.respond_to?(key)
-        sym
-      end
-
-      def self.validate_proc(proc, block)
-        return proc if proc.respond_to?(:call)
-        return block if block.respond_to?(:call)
-        raise 'No proc/block given'
-      end
-
-      def self.validate_usable(options)
-        obj = options[:obj]
-        key = validate_key(options[:key], obj)
-        proc = validate_proc(options[:proc], options[:block])
-        [key, proc, proc.arity.zero? ? [] : [obj], obj]
-      end
-
-      private_class_method :resolved, :validate_key, :validate_proc,
-                           :validate_usable
+    # Removes a callback from a registry.
+    #
+    # @param [Hash] options
+    # @return [nil]
+    def self.forget(options)
+      obj, methods, key = validate_existing(options)
+      raise KeyNotRegisteredError,
+            "Key #{key} is not registered" unless methods.include?(key)
+      obj.singleton_class.instance_eval do
+        @resolved.delete(key) if defined?(@resolved)
+        remove_method(key)
+      end && nil
     end
 
-    # Exception class used when an invalid key is used.
+    # Removes all callbacks from a registry.
+    #
+    # @param [Hash] options
+    # @return [nil]
+    def self.forget_all(options)
+      obj, methods, = validate_existing(options)
+      obj.singleton_class.instance_eval do
+        @resolved.clear if defined?(@resolved)
+        methods.each { |meth| remove_method(meth) }
+      end && nil
+    end
+
+    # Registers a new callback to a registry. This will add a new method
+    # matching +key+ to the registry that can be used both outside the
+    # registry and when registering other callbacks dependant of the
+    # current entry. Results from the callback will not be cached, meaning
+    # that the callback may return a different object every time.
+    #
+    # @param [Hash] options
+    # @return [nil]
+    def self.register(options)
+      key, proc, proc_args, obj = validate_usable(options)
+      obj.define_singleton_method(key) do
+        proc.call(*proc_args)
+      end && nil
+    end
+
+    # Registers a new callback to a registry. This will add a new method
+    # matching +key+ to the registry that can be used both outside the
+    # registry and when registering other callbacks dependant of the
+    # current entry. Results from the callback will be cached, meaning
+    # that the callback will return the same object every time.
+    #
+    # @param [Hash] options
+    # @return [nil]
+    def self.register_singleton(options)
+      key, proc, proc_args, obj = validate_usable(options)
+      resolved = resolved(options[:obj])
+      obj.define_singleton_method(key) do
+        return resolved[key] if resolved.key?(key)
+        resolved[key] = proc.call(*proc_args)
+      end && nil
+    end
+
+    def self.resolved(obj)
+      obj.singleton_class.instance_eval { @resolved ||= {} }
+    end
+
+    def self.validate_existing(options)
+      result = [options[:obj]]
+      result << result.first.singleton_methods
+      key = options.fetch(:key, nil)
+      result << key.to_sym if key
+      result
+    end
+
+    def self.validate_key(key, obj)
+      sym = key.to_sym
+      insp = key.inspect
+      raise KeyAlreadyRegisteredError, "Key #{insp} already registered" if
+        obj.singleton_methods.include?(sym)
+      raise InvalidKeyError, "Invalid key #{insp}" if
+        obj.public_methods.include?(sym) ||
+        /^[a-z\_]{1}[\d\w\_]*$/ !~ sym
+      sym
+    end
+
+    def self.validate_callback(proc, block)
+      return proc if proc.respond_to?(:call)
+      return block if block.respond_to?(:call)
+      raise InvalidCallbackError, 'Invalid callback'
+    end
+
+    def self.validate_usable(options)
+      obj = options[:obj]
+      key = validate_key(options[:key], obj)
+      proc = validate_callback(options[:proc], options[:block])
+      [key, proc, proc.arity.zero? ? [] : [obj], obj]
+    end
+
+    private_class_method :resolved, :validate_callback,
+                         :validate_existing, :validate_key,
+                         :validate_usable
+
+    # Exception class used when a user tries to register an
+    # invalid callback.
+    class InvalidCallbackError < ArgumentError
+    end
+
+    # Exception class used when a user tries to register an
+    # invalid key.
     class InvalidKeyError < ArgumentError
     end
 
-    # Exception class used when an invalid proc/block is used.
-    class InvalidProcError < ArgumentError
+    # Exception class used when a user tries to register a key
+    # that is already registered.
+    class KeyAlreadyRegisteredError < ArgumentError
     end
 
-    # Exception class used when a key is already registered.
-    class KeyAlreadyRegisteredError < ArgumentError
+    # Exception class used when a user is requesting to forget
+    # a key that is not registered.
+    class KeyNotRegisteredError < ArgumentError
     end
   end
 end

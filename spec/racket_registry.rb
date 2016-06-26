@@ -79,12 +79,13 @@ describe 'Racket::Registry registration' do
 
   it 'should block invalid block/procs' do
     -> { registry.register('invalid') }
-      .should.raise(RuntimeError)
-      .message.should.equal('No proc/block given')
+      .should.raise(Racket::Registry::InvalidCallbackError)
+      .message.should.equal('Invalid callback')
   end
 end
 
 describe 'Racket::Registry dependency handling' do
+  # A very simple class
   class Simple
     attr_reader :text
 
@@ -93,6 +94,7 @@ describe 'Racket::Registry dependency handling' do
     end
   end
 
+  # A somewhat complex class
   class NotSoSimple
     attr_reader :text, :simple_first, :simple_second
 
@@ -103,7 +105,8 @@ describe 'Racket::Registry dependency handling' do
     end
   end
 
-  it 'should be able to resolve dependencies regardless of registration order' do
+  it 'should be able to resolve dependencies regardless of ' \
+     'registration order' do
     registry = Racket::Registry.new
 
     foo = Simple.new('foo')
@@ -111,15 +114,44 @@ describe 'Racket::Registry dependency handling' do
 
     registry.singleton(
       :baz,
-      lambda { |r| NotSoSimple.new('baz', r.foo, r.bar) }
+      ->(r) { NotSoSimple.new('baz', r.foo, r.bar) }
     )
-    registry.singleton(:bar, lambda { |r| bar })
-    registry.singleton(:foo, lambda { |r| foo })
+    registry.singleton(:bar, -> { bar })
+    registry.singleton(:foo, -> { foo })
 
     baz = registry.baz
     baz.simple_first.object_id.should.equal(foo.object_id)
     baz.simple_second.object_id.should.equal(bar.object_id)
     registry.foo.object_id.should.equal(foo.object_id)
     registry.bar.object_id.should.equal(bar.object_id)
+  end
+end
+
+describe 'Racket::Registry entry removal' do
+  registry = Racket::Registry.new
+
+  it 'should be able to forget a single entry' do
+    obj = Object.new
+    registry.register(:foo) { obj }
+    registry.foo.object_id.should.equal(obj.object_id)
+    registry.forget(:foo)
+    -> { registry.foo }.should.raise(NoMethodError)
+  end
+
+  it 'should be able to forget all entries' do
+    obj = Object.new
+    registry.register(:foo) { obj }
+    registry.register(:bar) { obj }
+    registry.foo.object_id.should.equal(obj.object_id)
+    registry.bar.object_id.should.equal(obj.object_id)
+    registry.forget_all
+    -> { registry.foo }.should.raise(NoMethodError)
+    -> { registry.bar }.should.raise(NoMethodError)
+  end
+
+  it 'should fail to forget non-existing entries' do
+    -> { registry.forget(:baz) }
+      .should.raise(Racket::Registry::KeyNotRegisteredError)
+      .message.should.equal('Key baz is not registered')
   end
 end

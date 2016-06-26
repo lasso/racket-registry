@@ -8,7 +8,7 @@ Racket Registry was originally intended for use in my home-made web framework, [
 The intention of the this library is to provide a very simple dependency injection container. Although not as useful in ruby as in less dynamic languages, I still think using a service container has its uses.
 
 ## How?
-Racket Registry allows you to register two kinds of procs, non-singletons and singletons. Registering also means that the container gets a new public method corresponding to the key used when registering the proc.
+Racket Registry allows you to register two kinds of callbacks, non-singletons and singletons. Registering also means that the container gets a new public method corresponding to the key used when registering the callback.
 
 ```ruby
 require 'racket/registry'
@@ -83,5 +83,10 @@ registry.register(:foo, lambda { Object.new })
 registry.register(:foo) { Object.new }
 ```
 
+## "Unregistering" callbacks
+
+If you want to "unregister" a specific callback, you can use `registry.forget(key)`. If you want to unregister all callbacks,
+you can use `registry.forget_all`.
+
 ## Limitations
-When registering a proc, you must use a string/symbol as key. Since the registry is also defining a new public method, the key must not collide with any public method in Object or Racket::Registry.
+When registering a callback, you must use a string/symbol as key. Since the registry is also defining a new public method, the key must represent a valid method name and also not collide with any public method in the registry.
