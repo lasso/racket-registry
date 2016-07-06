@@ -16,6 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Racket Registry.  If not, see <http://www.gnu.org/licenses/>.
 
+base_dir =
+  File.realpath(
+    defined?(__dir__) ? __dir__ : File.dirname(File.realpath(__FILE__))
+  )
 
 description = <<EOS
 Racket Registry is an easy-to-use container lib for most of your dependency
@@ -23,7 +27,7 @@ injection container needs.
 EOS
 
 files = test_files = nil
-Dir.chdir(__dir__) do
+Dir.chdir(base_dir) do
   files = Dir.glob('lib/**/*')
   files.concat(['COPYING.AGPL', 'Rakefile', 'README.md'])
   test_files = Dir.glob('spec/**/*')
@@ -37,7 +41,7 @@ Gem::Specification.new do |s|
   s.homepage              = 'https://github.com/lasso/racket-registry'
   s.license               = 'AGPL-3.0'
   s.authors               = ['Lars Olsson']
-  s.version               = '0.4.1'
+  s.version               = '0.4.2'
   s.date                  = Time.now.strftime('%Y-%m-%d')
   s.summary               = summary
   s.description           = description
