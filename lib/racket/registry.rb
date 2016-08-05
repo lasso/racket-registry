@@ -20,6 +20,32 @@
 module Racket
   # Racket Registry namespace
   class Registry
+    class << self
+      # Returns a new registry with all items in the map registered as
+      # non-singleton procs.
+      #
+      # @param [Hash] map
+      # @return [Racket::Registry]
+      def with_map(map)
+        registry = new
+        map.each_pair { |key, value| registry.register(key, value) }
+        registry
+      end
+
+      # Returns a new registry with all items in the map registered as
+      # singleton procs.
+      #
+      # @param [Hash] map
+      # @return [Racket::Registry]
+      def with_singleton_map(map)
+        registry = new
+        map.each_pair { |key, value| registry.register_singleton(key, value) }
+        registry
+      end
+
+      alias singleton_map with_singleton_map
+    end
+
     # Removes the callback specified by +key+ from the registry.
     #
     # @param [String|Symbol] key

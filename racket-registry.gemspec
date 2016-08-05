@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
   s.homepage              = 'https://github.com/lasso/racket-registry'
   s.license               = 'AGPL-3.0'
   s.authors               = ['Lars Olsson']
-  s.version               = '0.4.2'
+  s.version               = '0.5.0'
   s.date                  = Time.now.strftime('%Y-%m-%d')
   s.summary               = summary
   s.description           = description

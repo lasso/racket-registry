@@ -1,0 +1,9 @@
+*.gem
+.bundle
+.project
+.rubocop.yml
+.yardoc
+coverage
+doc
+Gemfile.lock
+vendor

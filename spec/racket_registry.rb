@@ -84,6 +84,38 @@ describe 'Racket::Registry registration' do
   end
 end
 
+describe 'Racket::Registry bulk registration' do
+  it 'should be able to register non-singleton procs in bulk' do
+    registry =
+      Racket::Registry.with_map(
+        one: -> { Object.new },
+        two: -> { Object.new },
+        three: -> { Object.new }
+      )
+    [:one, :two, :three].each do |key|
+      registry.should.respond_to(key)
+      obj1 = registry.send(key)
+      obj2 = registry.send(key)
+      obj1.object_id.should.not.equal(obj2.object_id)
+    end
+  end
+
+  it 'should be able to register singleton procs in bulk' do
+    registry =
+      Racket::Registry.with_singleton_map(
+        one: -> { Object.new },
+        two: -> { Object.new },
+        three: -> { Object.new }
+      )
+    [:one, :two, :three].each do |key|
+      registry.should.respond_to(key)
+      obj1 = registry.send(key)
+      obj2 = registry.send(key)
+      obj1.object_id.should.equal(obj2.object_id)
+    end
+  end
+end
+
 describe 'Racket::Registry dependency handling' do
   # A very simple class
   class Simple
