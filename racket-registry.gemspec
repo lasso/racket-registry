@@ -48,12 +48,13 @@ Gem::Specification.new do |s|
   s.files                 = files
   s.platform              = Gem::Platform::RUBY
   s.require_path          = 'lib'
-  s.required_ruby_version = '>= 1.9.3'
+  s.required_ruby_version = '>= 2.0.0'
   s.test_files            = test_files
 
   s.add_development_dependency('bacon', '~>1.2')
-  s.add_development_dependency('codecov', '~>0.1.5')
-  s.add_development_dependency('rake', '~>11')
-  s.add_development_dependency('simplecov', '~>0.11')
-  s.add_development_dependency('yard', '~>0')
+  s.add_development_dependency('codecov', '~>0.1')
+  s.add_dependency('json', '~>2.0')
+  s.add_development_dependency('rake', '~>12')
+  s.add_development_dependency('simplecov', '~>0.12')
+  s.add_development_dependency('yard', '~>0.9')
 end
