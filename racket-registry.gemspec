@@ -48,7 +48,7 @@ Gem::Specification.new do |s|
   s.files                 = files
   s.platform              = Gem::Platform::RUBY
   s.require_path          = 'lib'
-  s.required_ruby_version = '>= 2.0.0'
+  s.required_ruby_version = '>= 2.2.0'
   s.test_files            = test_files
 
   s.add_development_dependency('bacon', '~>1.2')
