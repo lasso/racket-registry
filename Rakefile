@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 # Racket Registry - a simple dependency injection container
-# Copyright (C) 2016  Lars Olsson <lasso@lassoweb.se>
+# Copyright (C) 2016-2019  Lars Olsson <lasso@lassoweb.se>
 #
 # This file is part of Racket Registry.
 #

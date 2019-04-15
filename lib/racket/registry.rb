@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 # Racket Registry - a simple dependency injection container
-# Copyright (C) 2016  Lars Olsson <lasso@lassoweb.se>
+# Copyright (C) 2016-2019  Lars Olsson <lasso@lassoweb.se>
 #
 # This file is part of Racket Registry.
 #
@@ -92,8 +94,10 @@ module Racket
       # Private method - do not call
       def self.forget(options)
         obj, methods, key = validate_existing(options)
-        raise KeyNotRegisteredError,
-              "Key #{key} is not registered" unless methods.include?(key)
+        unless methods.include?(key)
+          raise KeyNotRegisteredError,
+                "Key #{key} is not registered"
+        end
         obj.singleton_class.instance_eval do
           @resolved.delete(key) if defined?(@resolved)
           remove_method(key)
@@ -146,7 +150,7 @@ module Racket
           obj.singleton_methods.include?(sym)
         raise InvalidKeyError, "Invalid key #{insp}" if
           obj.public_methods.include?(sym) ||
-          /^[a-z\_]{1}[\d\w\_]*$/ !~ sym
+          /^[a-z_][\d\w_]*$/ !~ sym
         sym
       end
 

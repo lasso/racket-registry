@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 # Racket Registry - a simple dependency injection container
-# Copyright (C) 2016  Lars Olsson <lasso@lassoweb.se>
+# Copyright (C) 2016-2019  Lars Olsson <lasso@lassoweb.se>
 #
 # This file is part of Racket Registry.
 #
@@ -92,7 +94,7 @@ describe 'Racket::Registry bulk registration' do
         two: -> { Object.new },
         three: -> { Object.new }
       )
-    [:one, :two, :three].each do |key|
+    %i[one two three].each do |key|
       registry.should.respond_to(key)
       obj1 = registry.send(key)
       obj2 = registry.send(key)
@@ -107,7 +109,7 @@ describe 'Racket::Registry bulk registration' do
         two: -> { Object.new },
         three: -> { Object.new }
       )
-    [:one, :two, :three].each do |key|
+    %i[one two three].each do |key|
       registry.should.respond_to(key)
       obj1 = registry.send(key)
       obj2 = registry.send(key)
