@@ -7,6 +7,6 @@ rvm:
   - 2.5
   - 2.6
   - jruby-9.2
-  - rubinius-3
+  - rbx-3
 env:
   - JRUBY_OPTS="-Xcli.debug=true --debug"
