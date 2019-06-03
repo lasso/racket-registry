@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Racket Registry.  If not, see <http://www.gnu.org/licenses/>.
 
-require 'bacon'
 require 'simplecov'
 
 SimpleCov.start do
@@ -32,62 +31,68 @@ end
 
 require_relative '../lib/racket/registry.rb'
 
+require 'minitest/autorun'
+
 describe 'Racket::Registry registration' do
-  registry = Racket::Registry.new
-
-  it 'should be able to register non-singleton entries using a proc' do
-    registry.register('one', -> { Object.new })
-    registry.should.respond_to(:one)
-    obj1 = registry.one
-    obj2 = registry.one
-    obj1.object_id.should.not.equal(obj2.object_id)
+  before do
+    @registry = Racket::Registry.new
   end
 
-  it 'should be able to register singleton entries using a proc' do
-    registry.singleton('two', -> { Object.new })
-    registry.should.respond_to(:two)
-    obj1 = registry.two
-    obj2 = registry.two
-    obj1.object_id.should.equal(obj2.object_id)
+  it 'must be able to register non-singleton entries using a proc' do
+    @registry.register('one', -> { Object.new })
+    @registry.must_respond_to(:one)
+    obj1 = @registry.one
+    obj2 = @registry.one
+    obj1.wont_be_same_as(obj2)
   end
 
-  it 'should be able to register non-singleton entries using a block' do
-    registry.register('three') { Object.new }
-    registry.should.respond_to(:three)
-    obj1 = registry.three
-    obj2 = registry.three
-    obj1.object_id.should.not.equal(obj2.object_id)
+  it 'must be able to register singleton entries using a proc' do
+    @registry.singleton('two', -> { Object.new })
+    @registry.must_respond_to(:two)
+    obj1 = @registry.two
+    obj2 = @registry.two
+    obj1.must_be_same_as(obj2)
   end
 
-  it 'should be able to register singleton entries using a block' do
-    registry.singleton('four') { Object.new }
-    registry.should.respond_to(:four)
-    obj1 = registry.four
-    obj2 = registry.four
-    obj1.object_id.should.equal(obj2.object_id)
+  it 'must be able to register non-singleton entries using a block' do
+    @registry.register('three') { Object.new }
+    @registry.must_respond_to(:three)
+    obj1 = @registry.three
+    obj2 = @registry.three
+    obj1.wont_be_same_as(obj2)
   end
 
-  it 'should block invalid keys' do
-    -> { registry.register('inspect') }
-      .should.raise(Racket::Registry::InvalidKeyError)
-      .message.should.equal('Invalid key "inspect"')
+  it 'must be able to register singleton entries using a block' do
+    @registry.singleton('four') { Object.new }
+    @registry.must_respond_to(:four)
+    obj1 = @registry.four
+    obj2 = @registry.four
+    obj1.must_be_same_as(obj2)
   end
 
-  it 'should block already registered keys' do
-    -> { registry.register('one', -> { Object.new }) }
-      .should.raise(Racket::Registry::KeyAlreadyRegisteredError)
-      .message.should.equal('Key "one" already registered')
+  it 'must block invalid keys' do
+    -> { @registry.register('inspect') }
+      .must_raise(Racket::Registry::InvalidKeyError)
+      .message.must_equal('Invalid key "inspect"')
   end
 
-  it 'should block invalid block/procs' do
-    -> { registry.register('invalid') }
-      .should.raise(Racket::Registry::InvalidCallbackError)
-      .message.should.equal('Invalid callback')
+  it 'must block already registered keys' do
+    @registry.register('one', -> { Object.new })
+    -> { @registry.register('one', -> { Object.new }) }
+      .must_raise(Racket::Registry::KeyAlreadyRegisteredError)
+      .message.must_equal('Key "one" already registered')
   end
+
+  it 'must block invalid block/procs' do
+    -> { @registry.register('invalid') }
+      .must_raise(Racket::Registry::InvalidCallbackError)
+      .message.must_equal('Invalid callback')
+  end
+
 end
 
 describe 'Racket::Registry bulk registration' do
-  it 'should be able to register non-singleton procs in bulk' do
+  it 'must be able to register non-singleton procs in bulk' do
     registry =
       Racket::Registry.with_map(
         one: -> { Object.new },
@@ -95,14 +100,14 @@ describe 'Racket::Registry bulk registration' do
         three: -> { Object.new }
       )
     %i[one two three].each do |key|
-      registry.should.respond_to(key)
+      registry.must_respond_to(key)
       obj1 = registry.send(key)
       obj2 = registry.send(key)
-      obj1.object_id.should.not.equal(obj2.object_id)
+      obj1.wont_be_same_as(obj2)
     end
   end
 
-  it 'should be able to register singleton procs in bulk' do
+  it 'must be able to register singleton procs in bulk' do
     registry =
       Racket::Registry.with_singleton_map(
         one: -> { Object.new },
@@ -110,10 +115,10 @@ describe 'Racket::Registry bulk registration' do
         three: -> { Object.new }
       )
     %i[one two three].each do |key|
-      registry.should.respond_to(key)
+      registry.must_respond_to(key)
       obj1 = registry.send(key)
       obj2 = registry.send(key)
-      obj1.object_id.should.equal(obj2.object_id)
+      obj1.must_be_same_as(obj2)
     end
   end
 end
@@ -139,7 +144,7 @@ describe 'Racket::Registry dependency handling' do
     end
   end
 
-  it 'should be able to resolve dependencies regardless of ' \
+  it 'must be able to resolve dependencies regardless of ' \
      'registration order' do
     registry = Racket::Registry.new
 
@@ -154,38 +159,40 @@ describe 'Racket::Registry dependency handling' do
     registry.singleton(:foo, -> { foo })
 
     baz = registry.baz
-    baz.simple_first.object_id.should.equal(foo.object_id)
-    baz.simple_second.object_id.should.equal(bar.object_id)
-    registry.foo.object_id.should.equal(foo.object_id)
-    registry.bar.object_id.should.equal(bar.object_id)
+    baz.simple_first.must_be_same_as(foo)
+    baz.simple_second.must_be_same_as(bar)
+    registry.foo.must_be_same_as(foo)
+    registry.bar.must_be_same_as(bar)
   end
 end
 
 describe 'Racket::Registry entry removal' do
-  registry = Racket::Registry.new
-
-  it 'should be able to forget a single entry' do
-    obj = Object.new
-    registry.register(:foo) { obj }
-    registry.foo.object_id.should.equal(obj.object_id)
-    registry.forget(:foo)
-    -> { registry.foo }.should.raise(NoMethodError)
+  before do
+    @registry = Racket::Registry.new
   end
 
-  it 'should be able to forget all entries' do
+  it 'must be able to forget a single entry' do
     obj = Object.new
-    registry.register(:foo) { obj }
-    registry.register(:bar) { obj }
-    registry.foo.object_id.should.equal(obj.object_id)
-    registry.bar.object_id.should.equal(obj.object_id)
-    registry.forget_all
-    -> { registry.foo }.should.raise(NoMethodError)
-    -> { registry.bar }.should.raise(NoMethodError)
+    @registry.register(:foo) { obj }
+    @registry.foo.must_be_same_as(obj)
+    @registry.forget(:foo)
+    -> { @registry.foo }.must_raise(NoMethodError)
   end
 
-  it 'should fail to forget non-existing entries' do
-    -> { registry.forget(:baz) }
-      .should.raise(Racket::Registry::KeyNotRegisteredError)
-      .message.should.equal('Key baz is not registered')
+  it 'must be able to forget all entries' do
+    obj = Object.new
+    @registry.register(:foo) { obj }
+    @registry.register(:bar) { obj }
+    @registry.foo.must_be_same_as(obj)
+    @registry.bar.must_be_same_as(obj)
+    @registry.forget_all
+    -> { @registry.foo }.must_raise(NoMethodError)
+    -> { @registry.bar }.must_raise(NoMethodError)
+  end
+
+  it 'must fail to forget non-existing entries' do
+    -> { @registry.forget(:baz) }
+      .must_raise(Racket::Registry::KeyNotRegisteredError)
+      .message.must_equal('Key baz is not registered')
   end
 end

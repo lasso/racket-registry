@@ -31,7 +31,7 @@ task :nodoc do
   exec 'yard stats --list-undoc'
 end
 
-desc 'Run bacon tests'
+desc 'Run tests'
 task :test do
-  exec 'bacon spec/racket_registry.rb'
+  exec 'ruby spec/racket_registry.rb'
 end

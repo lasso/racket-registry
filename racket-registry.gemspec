@@ -48,7 +48,6 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.4'
   s.test_files            = test_files
 
-  s.add_development_dependency('bacon', '~>1.2')
   s.add_development_dependency('codecov', '~>0.1')
   s.add_dependency('json', '~>2.0')
   s.add_development_dependency('rake', '~>12')
