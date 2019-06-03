@@ -49,7 +49,6 @@ Gem::Specification.new do |s|
   s.test_files            = test_files
 
   s.add_development_dependency('codecov', '~>0.1')
-  s.add_dependency('json', '~>2.0')
   s.add_development_dependency('minitest', '~>5.0')
   s.add_development_dependency('rake', '~>12')
   s.add_development_dependency('simplecov', '~>0.12')
