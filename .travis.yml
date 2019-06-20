@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: false
 language: ruby
 cache: bundler
@@ -7,5 +7,6 @@ rvm:
   - 2.5
   - 2.6
   - jruby-9.2
+  - rbx-3
 env:
   - JRUBY_OPTS="-Xcli.debug=true --debug"
